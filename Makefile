@@ -67,7 +67,7 @@ test: $(TARGET)
 	./$(TARGET) tests/sample_comfy.png | grep -q "astronaut riding a horse" && echo "✓ sample_comfy.png: Clean prompt text extracted successfully"
 	./$(TARGET) tests/sample_sdxl.png | grep -q "cosmic nebula lion" && echo "✓ sample_sdxl.png: SDXL prompt text extracted successfully"
 	./$(TARGET) tests/sample_flux.png | grep -q "cyberpunk city" && echo "✓ sample_flux.png: Flux prompt text extracted successfully"
-	./$(TARGET) tests/sample_krea2.png | grep -q "solid black screen" && echo "✓ sample_krea2.png: Krea2 prompt text extracted successfully"
+	./$(TARGET) tests/sample_krea2.png | grep -qi "parakeet bird" && echo "✓ sample_krea2.png: Krea2 prompt text extracted successfully"
 	./$(TARGET) tests/sample_itxt.png | grep -q "astronaut" && echo "✓ sample_itxt.png: iTXt Prompt text extracted successfully"
 	@echo "\n--- Testing Raw JSON & Workflow Options ---"
 	./$(TARGET) -r tests/sample_comfy.png | grep -q "KSampler" && echo "✓ -r / --raw: Raw prompt JSON graph extracted successfully"

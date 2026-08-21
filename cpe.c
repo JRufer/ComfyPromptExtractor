@@ -1132,13 +1132,16 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
     Color badge_bg       = (Color){ 34, 40, 52, 255 };
     Color badge_green    = (Color){ 16, 185, 129, 255 };
 
-    Rectangle copy_btn_rect = { win_w - padding - 150, win_h - footer_height + 10, 150, 40 };
-    Rectangle close_btn_rect = { win_w - padding - 150 - 100, win_h - footer_height + 10, 90, 40 };
+    Rectangle copy_btn_rect = { win_w - padding - 140, win_h - footer_height + 10, 140, 40 };
+    Rectangle workflow_btn_rect = { win_w - padding - 140 - 10 - 150, win_h - footer_height + 10, 150, 40 };
+    Rectangle close_btn_rect = { win_w - padding - 140 - 10 - 150 - 10 - 90, win_h - footer_height + 10, 90, 40 };
     Rectangle header_close_rect = { win_w - padding - 28, 16, 28, 28 };
 
     bool has_been_focused = false;
     int frame_count = 0;
     bool should_copy_and_exit = false;
+    bool should_copy_wf_and_exit = false;
+    bool wf_has_data = (meta->raw_workflow != NULL || meta->raw_prompt != NULL);
 
     while (!WindowShouldClose()) {
         frame_count++;
@@ -1154,6 +1157,13 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
         if ((ctrl_down && IsKeyPressed(KEY_C)) || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
             should_copy_and_exit = true;
             break;
+        }
+
+        if (ctrl_down && IsKeyPressed(KEY_W)) {
+            if (wf_has_data) {
+                should_copy_wf_and_exit = true;
+                break;
+            }
         }
 
         if (IsKeyPressed(KEY_ESCAPE)) {
@@ -1179,14 +1189,29 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
         bool copy_hover = CheckCollisionPointRec(mouse, copy_btn_rect);
         bool copy_click = copy_hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 
+        bool wf_hover = wf_has_data && CheckCollisionPointRec(mouse, workflow_btn_rect);
+        bool wf_click = wf_hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+
         bool close_hover = CheckCollisionPointRec(mouse, close_btn_rect);
         bool close_click = close_hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 
         bool top_close_hover = CheckCollisionPointRec(mouse, header_close_rect);
         bool top_close_click = top_close_hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 
+        /* Set mouse cursor to pointing hand when hovering over any clickable button */
+        bool is_hovering_button = copy_hover || wf_hover || close_hover || top_close_hover;
+        if (is_hovering_button) {
+            SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+        } else {
+            SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+        }
+
         if (copy_click) {
             should_copy_and_exit = true;
+            break;
+        }
+        if (wf_click) {
+            should_copy_wf_and_exit = true;
             break;
         }
         if (close_click || top_close_click) {
@@ -1233,7 +1258,12 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
         DrawTextEx(font, file_badge, (Vector2){ badge_x, (header_height - 13.0f) / 2.0f }, 13.0f, font_spacing, text_muted);
 
         /* Header Close Icon [X] */
-        DrawTextEx(font, "✕", (Vector2){ header_close_rect.x + 8.0f, header_close_rect.y + 5.0f }, 16.0f, font_spacing, top_close_hover ? text_bright : text_muted);
+        Color close_ic_col = top_close_hover ? text_bright : text_muted;
+        float cx = header_close_rect.x + header_close_rect.width / 2.0f;
+        float cy = header_close_rect.y + header_close_rect.height / 2.0f;
+        float r = 5.0f;
+        DrawLineEx((Vector2){ cx - r, cy - r }, (Vector2){ cx + r, cy + r }, 2.0f, close_ic_col);
+        DrawLineEx((Vector2){ cx - r, cy + r }, (Vector2){ cx + r, cy - r }, 2.0f, close_ic_col);
 
         /* 2. Text Content Box */
         float content_top = header_height + padding;
@@ -1268,7 +1298,7 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
         DrawLine(0, win_h - (int)footer_height, win_w, win_h - (int)footer_height, border_color);
 
         /* Left Hints */
-        DrawTextEx(font, "Enter / Ctrl+C : Copy & Exit", (Vector2){ padding + 4.0f, win_h - footer_height + 13.0f }, 13.0f, font_spacing, text_bright);
+        DrawTextEx(font, "Enter / Ctrl+C : Copy Prompt | Ctrl+W : Copy Workflow", (Vector2){ padding + 4.0f, win_h - footer_height + 13.0f }, 13.0f, font_spacing, text_bright);
         DrawTextEx(font, "Esc / Click Away : Close", (Vector2){ padding + 4.0f, win_h - footer_height + 33.0f }, 12.0f, font_spacing, text_muted);
 
         /* Close Button */
@@ -1278,7 +1308,17 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
         Vector2 close_sz = MeasureTextEx(font, "Close", 15.0f, font_spacing);
         DrawTextEx(font, "Close", (Vector2){ close_btn_rect.x + (close_btn_rect.width - close_sz.x) / 2.0f, close_btn_rect.y + (close_btn_rect.height - close_sz.y) / 2.0f }, 15.0f, font_spacing, text_bright);
 
-        /* Copy Button */
+        /* Copy Workflow Button */
+        Color wf_bg = wf_has_data ? (wf_hover ? (IsMouseButtonDown(MOUSE_BUTTON_LEFT) ? (Color){ 30, 58, 138, 255 } : (Color){ 30, 64, 175, 255 }) : (Color){ 30, 41, 59, 255 }) : (Color){ 24, 28, 36, 255 };
+        Color wf_border = wf_has_data ? (wf_hover ? accent_hover : border_color) : border_color;
+        Color wf_text_color = wf_has_data ? (wf_hover ? (Color){ 255, 255, 255, 255 } : text_bright) : text_muted;
+
+        DrawRectangleRounded(workflow_btn_rect, 0.25f, 4, wf_bg);
+        DrawRectangleRoundedLinesEx(workflow_btn_rect, 0.25f, 4, 1, wf_border);
+        Vector2 wf_sz = MeasureTextEx(font, "Copy Workflow", 15.0f, font_spacing);
+        DrawTextEx(font, "Copy Workflow", (Vector2){ workflow_btn_rect.x + (workflow_btn_rect.width - wf_sz.x) / 2.0f, workflow_btn_rect.y + (workflow_btn_rect.height - wf_sz.y) / 2.0f }, 15.0f, font_spacing, wf_text_color);
+
+        /* Copy Prompt Button */
         Color cp_btn = copy_hover ? (IsMouseButtonDown(MOUSE_BUTTON_LEFT) ? accent_active : accent_hover) : accent_indigo;
         DrawRectangleRounded(copy_btn_rect, 0.25f, 4, cp_btn);
         Vector2 cp_sz = MeasureTextEx(font, "Copy Prompt", 15.0f, font_spacing);
@@ -1295,6 +1335,11 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
 
     if (should_copy_and_exit && meta->found && meta->selected_val) {
         copy_to_clipboard(meta->selected_val);
+    } else if (should_copy_wf_and_exit) {
+        const char *wf_str = meta->raw_workflow ? meta->raw_workflow : meta->raw_prompt;
+        if (wf_str) {
+            copy_to_clipboard(wf_str);
+        }
     }
 }
 

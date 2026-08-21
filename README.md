@@ -11,9 +11,9 @@
 │ <lora:style_of_Rembrandt_FLUX_135:0.8>,                     │
 │ <lora:- Flux1 - vanta_black_V2.0:0.6> vantablack...         │
 ├─────────────────────────────────────────────────────────────┤
-│ Enter / Ctrl+C : Copy & Exit      [Close]   [ Copy Prompt ] │
-│ Esc / Click Away : Close                                    │
-└─────────────────────────────────────────────────────────────┘
+│ Enter / Ctrl+C : Copy Prompt | Ctrl+W : Copy Workflow  [Close] [Copy Workflow] [Copy Prompt] │
+│ Esc / Click Away : Close                                                                  │
+└───────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -26,7 +26,8 @@
   - **Terminal / CLI Mode (TTY detected)**: Emits clean prompt text directly to `stdout` and exits immediately (`0` on success, `1` on error). Zero GUI initialization overhead.
   - **Desktop / GUI Mode (No TTY / File Manager)**: Launches a sleek, compact, borderless dark UI centered on screen.
 - 📋 **Seamless Clipboard & Dismissal**:
-  - **Copy & Exit**: Click **"Copy Prompt"**, press <kbd>Enter</kbd>, or press <kbd>Ctrl</kbd> + <kbd>C</kbd>.
+  - **Copy Prompt**: Click **"Copy Prompt"**, press <kbd>Enter</kbd>, or press <kbd>Ctrl</kbd> + <kbd>C</kbd>.
+  - **Copy Workflow**: Click **"Copy Workflow"** or press <kbd>Ctrl</kbd> + <kbd>W</kbd> to copy the full JSON workflow structure to the clipboard.
   - **Dismiss**: Press <kbd>Esc</kbd>, click **"Close"**, or simply click outside the window (instant close on focus loss).
 - 📦 **Zero External Runtime Dependencies**: Single source file (`cpe.c`), tiny stripped binary (~960 KB), embedded lightweight JSON graph parser, and minimal Raylib GUI.
 - 🗂️ **Desktop Integration**: Includes FreeDesktop `cpe.desktop` specification for "Right Click -> Open With" in Linux file managers (Nautilus, Dolphin, Thunar, Nemo, etc.) with quick actions for Negative Prompt and Workflow JSON.
@@ -96,6 +97,7 @@ cpe --cli image.png > prompt.txt
 | :--- | :--- |
 | <kbd>Enter</kbd> or <kbd>KP_Enter</kbd> | Copy prompt text to clipboard and exit |
 | <kbd>Ctrl</kbd> + <kbd>C</kbd> | Copy prompt text to clipboard and exit |
+| <kbd>Ctrl</kbd> + <kbd>W</kbd> | Copy entire workflow JSON structure to clipboard and exit |
 | <kbd>Esc</kbd> | Close window without copying |
 | <kbd>Click Away</kbd> | Close window immediately on focus loss |
 | <kbd>Mouse Wheel</kbd> / <kbd>↑</kbd> <kbd>↓</kbd> | Scroll wrapped text |
