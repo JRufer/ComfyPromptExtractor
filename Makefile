@@ -72,18 +72,18 @@ test: $(TARGET)
 	python3 tests/generate_user_sample.py
 	python3 tests/generate_complex_samples.py
 	@echo "\n--- Testing Clean Prompt Text Extraction (Default) ---"
-	./$(TARGET) tests/sample_user_prompt.png | grep -q "surrealist art Surrealism" && echo "✓ sample_user_prompt.png: User prompt text extracted successfully"
-	./$(TARGET) -n tests/sample_user_prompt.png | grep -q "low quality, blurry" && echo "✓ sample_user_prompt.png: Negative prompt text extracted successfully"
-	./$(TARGET) tests/sample_comfy.png | grep -q "astronaut riding a horse" && echo "✓ sample_comfy.png: Clean prompt text extracted successfully"
-	./$(TARGET) tests/sample_sdxl.png | grep -q "cosmic nebula lion" && echo "✓ sample_sdxl.png: SDXL prompt text extracted successfully"
-	./$(TARGET) tests/sample_flux.png | grep -q "cyberpunk city" && echo "✓ sample_flux.png: Flux prompt text extracted successfully"
-	./$(TARGET) tests/sample_krea2.png | grep -qi "parakeet bird" && echo "✓ sample_krea2.png: Krea2 prompt text extracted successfully"
-	./$(TARGET) tests/sample_itxt.png | grep -q "astronaut" && echo "✓ sample_itxt.png: iTXt Prompt text extracted successfully"
+	@./$(TARGET) tests/sample_user_prompt.png | grep -q "surrealist art Surrealism" && echo "✓ sample_user_prompt.png: User prompt text extracted successfully"
+	@./$(TARGET) -n tests/sample_user_prompt.png | grep -q "low quality, blurry" && echo "✓ sample_user_prompt.png: Negative prompt text extracted successfully"
+	@./$(TARGET) tests/sample_comfy.png | grep -q "astronaut riding a horse" && echo "✓ sample_comfy.png: Clean prompt text extracted successfully"
+	@./$(TARGET) tests/sample_sdxl.png | grep -q "cosmic nebula lion" && echo "✓ sample_sdxl.png: SDXL prompt text extracted successfully"
+	@./$(TARGET) tests/sample_flux.png | grep -q "cyberpunk city" && echo "✓ sample_flux.png: Flux prompt text extracted successfully"
+	@./$(TARGET) tests/sample_krea2.png | grep -qi "parakeet bird" && echo "✓ sample_krea2.png: Krea2 prompt text extracted successfully"
+	@./$(TARGET) tests/sample_itxt.png | grep -q "astronaut" && echo "✓ sample_itxt.png: iTXt Prompt text extracted successfully"
 	@echo "\n--- Testing Raw JSON & Workflow Options ---"
-	./$(TARGET) -r tests/sample_comfy.png | grep -q "KSampler" && echo "✓ -r / --raw: Raw prompt JSON graph extracted successfully"
-	./$(TARGET) -w tests/sample_comfy.png | grep -q "links" && echo "✓ -w / --workflow: Workflow JSON extracted successfully"
+	@./$(TARGET) -r tests/sample_comfy.png | grep -q "KSampler" && echo "✓ -r / --raw: Raw prompt JSON graph extracted successfully"
+	@./$(TARGET) -w tests/sample_comfy.png | grep -q "links" && echo "✓ -w / --workflow: Workflow JSON extracted successfully"
 	@echo "\n--- Testing Error Cases ---"
-	@! ./$(TARGET) tests/sample_no_meta.png 2>/dev/null && echo "✓ sample_no_meta.png: Correctly returned exit code 1"
-	@! ./$(TARGET) tests/sample_corrupt.png 2>/dev/null && echo "✓ sample_corrupt.png: Correctly returned exit code 1"
-	@! ./$(TARGET) non_existent.png 2>/dev/null && echo "✓ non_existent.png: Correctly returned exit code 1"
+	@if ./$(TARGET) tests/sample_no_meta.png >/dev/null 2>&1; then false; else echo "✓ sample_no_meta.png: Correctly returned exit code 1"; fi
+	@if ./$(TARGET) tests/sample_corrupt.png >/dev/null 2>&1; then false; else echo "✓ sample_corrupt.png: Correctly returned exit code 1"; fi
+	@if ./$(TARGET) non_existent.png >/dev/null 2>&1; then false; else echo "✓ non_existent.png: Correctly returned exit code 1"; fi
 	@echo "\n✓ All tests passed!"
