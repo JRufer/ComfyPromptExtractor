@@ -2,19 +2,7 @@
 
 **ComfyPromptExtractor (CPE)** is an ultra-fast, zero-dependency C application for Linux engineered to extract clean generation prompt text and workflow metadata from ComfyUI-generated PNG images with zero startup overhead.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  ComfyPromptExtractor [Prompt] [1,340 chars] • render.png  ✕│
-├─────────────────────────────────────────────────────────────┤
-│ surrealist art Surrealism, ethereal fantasy concept art...  │
-│ A whimsical soft digital painting, masterpiece, 8k...       │
-│ <lora:style_of_Rembrandt_FLUX_135:0.8>,                     │
-│ <lora:- Flux1 - vanta_black_V2.0:0.6> vantablack...         │
-├─────────────────────────────────────────────────────────────┤
-│ Enter / Ctrl+C : Copy Prompt | Ctrl+W : Copy Workflow  [Close] [Copy Workflow] [Copy Prompt] │
-│ Esc / Click Away : Close                                                                  │
-└───────────────────────────────────────────────────────────────────────────────────────────┘
-```
+![ComfyPromptExtractor GUI](docs/cpe_gui.png)
 
 ---
 

@@ -1059,7 +1059,10 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
     InitWindow(win_w, win_h, "ComfyPromptExtractor");
     SetTargetFPS(60);
 
-    /* Load & Set Window Manager Icon */
+    Texture2D header_icon = { 0 };
+    bool has_header_icon = false;
+
+    /* Load & Set Window Manager Icon and Header Bar Texture */
     const char *home_dir = getenv("HOME");
     char user_icon_path[512] = {0};
     if (home_dir) {
@@ -1079,6 +1082,11 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
             Image app_icon = LoadImage(icon_paths[i]);
             if (app_icon.data != NULL) {
                 SetWindowIcon(app_icon);
+                header_icon = LoadTextureFromImage(app_icon);
+                if (header_icon.id > 0) {
+                    SetTextureFilter(header_icon, TEXTURE_FILTER_BILINEAR);
+                    has_header_icon = true;
+                }
                 UnloadImage(app_icon);
                 break;
             }
@@ -1254,12 +1262,27 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
         DrawRectangle(1, 1, win_w - 2, (int)header_height, header_bg);
         DrawLine(0, (int)header_height, win_w, (int)header_height, border_color);
 
-        /* App Icon / Dot & Title */
-        DrawCircle((int)(padding + 8.0f), (int)(header_height / 2.0f), 6.0f, accent_indigo);
-        DrawTextEx(font, "ComfyPromptExtractor", (Vector2){ padding + 22.0f, (header_height - 18.0f) / 2.0f }, 18.0f, font_spacing, text_bright);
+        /* App Icon & Title */
+        float title_x = padding + 22.0f;
+        if (has_header_icon) {
+            float icon_sz = 26.0f;
+            DrawTexturePro(
+                header_icon,
+                (Rectangle){ 0.0f, 0.0f, (float)header_icon.width, (float)header_icon.height },
+                (Rectangle){ padding, (header_height - icon_sz) / 2.0f, icon_sz, icon_sz },
+                (Vector2){ 0.0f, 0.0f },
+                0.0f,
+                WHITE
+            );
+            title_x = padding + icon_sz + 10.0f;
+        } else {
+            DrawCircle((int)(padding + 8.0f), (int)(header_height / 2.0f), 6.0f, accent_indigo);
+        }
+        DrawTextEx(font, "ComfyPromptExtractor", (Vector2){ title_x, (header_height - 18.0f) / 2.0f }, 18.0f, font_spacing, text_bright);
 
         /* Badges */
-        float badge_x = padding + 245.0f;
+        Vector2 title_sz = MeasureTextEx(font, "ComfyPromptExtractor", 18.0f, font_spacing);
+        float badge_x = title_x + title_sz.x + 16.0f;
         if (meta->found && meta->selected_label) {
             char label_str[64];
             snprintf(label_str, sizeof(label_str), "[%s]", meta->selected_label);
@@ -1280,7 +1303,7 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
 
         /* Filename */
         char file_badge[128];
-        snprintf(file_badge, sizeof(file_badge), "• %s", filename);
+        snprintf(file_badge, sizeof(file_badge), "- %s", filename);
         DrawTextEx(font, file_badge, (Vector2){ badge_x, (header_height - 13.0f) / 2.0f }, 13.0f, font_spacing, text_muted);
 
         /* Header Close Icon [X] */
@@ -1354,6 +1377,9 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
     }
 
     free_wrapped_lines(&wl);
+    if (has_header_icon) {
+        UnloadTexture(header_icon);
+    }
     if (custom_font_loaded) {
         UnloadFont(font);
     }
