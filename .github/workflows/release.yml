@@ -5,9 +5,6 @@ on:
     branches:
       - main
 
-env:
-  ACTIONS_ALLOW_USE_UNSECURE_NODE20: 'true'
-
 jobs:
   build-and-draft-release:
     name: Build & Create Draft Release
@@ -18,7 +15,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4.2.2
+        run: |
+          git clone --depth=1 "https://github.com/${{ github.repository }}.git" .
+          git fetch origin "${{ github.sha }}"
+          git checkout -qf "${{ github.sha }}"
 
       - name: Install Dependencies
         run: |
