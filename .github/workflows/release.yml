@@ -41,20 +41,19 @@ jobs:
           tar -czvf cpe-linux-amd64.tar.gz -C release_dist .
 
       - name: Create Draft Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: draft-${{ github.sha }}
-          name: "ComfyPromptExtractor Draft Release (Commit ${{ github.sha }})"
-          body: |
-            Automated draft build of **ComfyPromptExtractor (CPE)** generated from commit `${{ github.sha }}` on branch `main`.
-
-            ### Assets
-            - `cpe`: Standalone x86_64 binary
-            - `cpe-linux-amd64.tar.gz`: Full release archive including binary, FreeDesktop entry (`cpe.desktop`), application icon (`cpe.png`), and documentation.
-          draft: true
-          prerelease: false
-          files: |
-            cpe
-            cpe-linux-amd64.tar.gz
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          TAG_NAME="draft-${SHORT_SHA}"
+
+          # Delete existing release with same tag if re-run
+          gh release delete "${TAG_NAME}" --cleanup-tag --yes 2>/dev/null || true
+
+          gh release create "${TAG_NAME}" \
+            --draft \
+            --target "${{ github.sha }}" \
+            --title "ComfyPromptExtractor Draft Release (${SHORT_SHA})" \
+            --notes "Automated draft build of **ComfyPromptExtractor (CPE)** generated from commit \`${{ github.sha }}\` on \`main\`." \
+            cpe \
+            cpe-linux-amd64.tar.gz
