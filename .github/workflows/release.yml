@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE20: 'true'
+
 jobs:
   build-and-draft-release:
     name: Build & Create Draft Release
@@ -15,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Install Dependencies
         run: |

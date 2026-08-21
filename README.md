@@ -129,5 +129,15 @@ sys     0m0.000s
 
 ---
 
+## Continuous Integration & Automated Draft Releases
+
+This repository includes a GitHub Actions workflow ([.github/workflows/release.yml](file:///home/jrufer/Development/ComfyPromptExtractor/.github/workflows/release.yml)) that triggers on every commit pushed to `main`:
+1. Compiles the binary with standard Linux X11/Mesa headers.
+2. Runs the automated `make test` test suite.
+3. Packages the standalone binary (`cpe`) and compressed release bundle (`cpe-linux-amd64.tar.gz`).
+4. Creates a new **Draft Release** on GitHub automatically.
+
+---
+
 ## License
 MIT License
