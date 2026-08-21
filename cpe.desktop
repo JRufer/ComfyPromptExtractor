@@ -1,0 +1,26 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Type=Application
+Name=ComfyPromptExtractor
+GenericName=ComfyUI Prompt Extractor
+Comment=Extract prompt text and metadata from ComfyUI images
+Exec=cpe %f
+Terminal=false
+MimeType=image/png;
+Categories=Utility;Graphics;2DGraphics;
+Icon=accessories-text-editor
+Keywords=comfyui;prompt;workflow;extractor;png;metadata;ai;
+StartupNotify=true
+Actions=Negative;RawPrompt;Workflow;
+
+[Desktop Action Negative]
+Name=Extract Negative Prompt
+Exec=cpe -n %f
+
+[Desktop Action RawPrompt]
+Name=Extract Raw Prompt JSON
+Exec=cpe -r %f
+
+[Desktop Action Workflow]
+Name=Extract Workflow JSON
+Exec=cpe -w %f
