@@ -5,6 +5,8 @@ DEBUG_CFLAGS ?= -std=c99 -g -O0 -Wall -Wextra
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 APPDIR ?= $(PREFIX)/share/applications
+ICONDIR ?= $(PREFIX)/share/icons/hicolor/256x256/apps
+PIXMAPDIR ?= $(PREFIX)/share/pixmaps
 
 # Check for system raylib or fallback to vendor directory
 HAVE_SYS_RAYLIB := $(shell pkg-config --exists raylib 2>/dev/null && echo 1 || echo 0)
@@ -49,12 +51,20 @@ install: $(TARGET)
 	install -m 755 $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
 	install -d $(DESTDIR)$(APPDIR)
 	install -m 644 cpe.desktop $(DESTDIR)$(APPDIR)/cpe.desktop
+	install -d $(DESTDIR)$(ICONDIR)
+	install -m 644 cpe.png $(DESTDIR)$(ICONDIR)/cpe.png
+	install -d $(DESTDIR)$(PIXMAPDIR)
+	install -m 644 cpe.png $(DESTDIR)$(PIXMAPDIR)/cpe.png
 	@which update-desktop-database >/dev/null 2>&1 && update-desktop-database $(DESTDIR)$(APPDIR) || true
+	@which gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t $(DESTDIR)$(PREFIX)/share/icons/hicolor 2>/dev/null || true
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
 	rm -f $(DESTDIR)$(APPDIR)/cpe.desktop
+	rm -f $(DESTDIR)$(ICONDIR)/cpe.png
+	rm -f $(DESTDIR)$(PIXMAPDIR)/cpe.png
 	@which update-desktop-database >/dev/null 2>&1 && update-desktop-database $(DESTDIR)$(APPDIR) || true
+	@which gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t $(DESTDIR)$(PREFIX)/share/icons/hicolor 2>/dev/null || true
 
 test: $(TARGET)
 	@echo "--- Generating Test Images ---"

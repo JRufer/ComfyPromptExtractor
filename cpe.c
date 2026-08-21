@@ -1059,6 +1059,32 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
     InitWindow(win_w, win_h, "ComfyPromptExtractor");
     SetTargetFPS(60);
 
+    /* Load & Set Window Manager Icon */
+    const char *home_dir = getenv("HOME");
+    char user_icon_path[512] = {0};
+    if (home_dir) {
+        snprintf(user_icon_path, sizeof(user_icon_path), "%s/.local/share/icons/hicolor/256x256/apps/cpe.png", home_dir);
+    }
+    const char *icon_paths[] = {
+        "cpe.png",
+        user_icon_path,
+        "/usr/local/share/icons/hicolor/256x256/apps/cpe.png",
+        "/usr/share/icons/hicolor/256x256/apps/cpe.png",
+        "/usr/local/share/pixmaps/cpe.png",
+        "/usr/share/pixmaps/cpe.png",
+        NULL
+    };
+    for (int i = 0; icon_paths[i]; i++) {
+        if (icon_paths[i][0] != '\0' && access(icon_paths[i], R_OK) == 0) {
+            Image app_icon = LoadImage(icon_paths[i]);
+            if (app_icon.data != NULL) {
+                SetWindowIcon(app_icon);
+                UnloadImage(app_icon);
+                break;
+            }
+        }
+    }
+
     /* Get High-DPI scale for high-resolution TTF glyph rasterization */
     Vector2 dpi = GetWindowScaleDPI();
     float dpi_scale = (dpi.x > 1.0f) ? dpi.x : 1.0f;
