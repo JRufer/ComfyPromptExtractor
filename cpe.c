@@ -1057,6 +1057,15 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
     int win_w = 880;
     int win_h = 580;
     InitWindow(win_w, win_h, "ComfyPromptExtractor");
+    if (!IsWindowReady()) {
+        if (meta->selected_val) {
+            fputs(meta->selected_val, stdout);
+            if (meta->selected_len > 0 && meta->selected_val[meta->selected_len - 1] != '\n') {
+                putchar('\n');
+            }
+        }
+        return;
+    }
     SetTargetFPS(60);
 
     Texture2D header_icon = { 0 };
@@ -1081,7 +1090,9 @@ static void run_gui_mode(const char *filepath, MetadataResult *meta) {
         if (icon_paths[i][0] != '\0' && access(icon_paths[i], R_OK) == 0) {
             Image app_icon = LoadImage(icon_paths[i]);
             if (app_icon.data != NULL) {
-                SetWindowIcon(app_icon);
+                if (IsWindowReady()) {
+                    SetWindowIcon(app_icon);
+                }
                 header_icon = LoadTextureFromImage(app_icon);
                 if (header_icon.id > 0) {
                     SetTextureFilter(header_icon, TEXTURE_FILTER_BILINEAR);
@@ -1462,11 +1473,15 @@ int main(int argc, char **argv) {
     } else if (mode == MODE_FORCE_GUI) {
         is_cli = false;
     } else {
-        /* Auto: If any standard stream (stdin, stdout, stderr) is a TTY, we were launched
-         * from a terminal session -> CLI mode.
-         * If none are a TTY (desktop file manager / launcher) -> GUI mode.
+        /* Auto:
+         * 1. If no DISPLAY or WAYLAND_DISPLAY environment variable exists -> CLI mode.
+         * 2. If any standard stream (stdin, stdout, stderr) is a TTY -> CLI mode.
+         * 3. If explicit extraction target (-n, -r, -w) was specified -> CLI mode.
+         * 4. Otherwise (desktop file manager double click) -> GUI mode.
          */
-        is_cli = (isatty(STDIN_FILENO) != 0 || isatty(STDOUT_FILENO) != 0 || isatty(STDERR_FILENO) != 0);
+        bool has_display = (getenv("DISPLAY") != NULL || getenv("WAYLAND_DISPLAY") != NULL);
+        bool has_tty = (isatty(STDIN_FILENO) != 0 || isatty(STDOUT_FILENO) != 0 || isatty(STDERR_FILENO) != 0);
+        is_cli = !has_display || has_tty || (target != TARGET_PROMPT_TEXT);
     }
 
     /* Parse PNG chunk metadata and extract prompt texts */
