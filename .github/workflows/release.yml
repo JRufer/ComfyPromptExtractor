@@ -1,0 +1,60 @@
+name: Build and Draft Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-draft-release:
+    name: Build & Create Draft Release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev python3 python3-pil
+
+      - name: Build Application
+        run: |
+          make clean
+          make
+
+      - name: Run Test Suite
+        run: |
+          make test
+
+      - name: Package Release Bundle
+        run: |
+          mkdir -p release_dist
+          cp cpe release_dist/
+          cp cpe.desktop release_dist/
+          cp cpe.png release_dist/
+          cp README.md release_dist/
+          tar -czvf cpe-linux-amd64.tar.gz -C release_dist .
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: draft-${{ github.sha }}
+          name: "ComfyPromptExtractor Draft Release (Commit ${{ github.sha }})"
+          body: |
+            Automated draft build of **ComfyPromptExtractor (CPE)** generated from commit `${{ github.sha }}` on branch `main`.
+
+            ### Assets
+            - `cpe`: Standalone x86_64 binary
+            - `cpe-linux-amd64.tar.gz`: Full release archive including binary, FreeDesktop entry (`cpe.desktop`), application icon (`cpe.png`), and documentation.
+          draft: true
+          prerelease: false
+          files: |
+            cpe
+            cpe-linux-amd64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
