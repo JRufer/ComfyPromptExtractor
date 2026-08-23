@@ -51,6 +51,10 @@ typedef struct {
     size_t raw_workflow_len;
     char *raw_parameters;
     size_t raw_parameters_len;
+    char *raw_invokeai;
+    size_t raw_invokeai_len;
+    char *raw_dream;
+    size_t raw_dream_len;
 
     /* Extracted clean prompt texts */
     char *prompt_text;
@@ -660,6 +664,133 @@ static void extract_a1111_prompts(const char *params, char **out_pos, char **out
     }
 }
 
+static void extract_invokeai_prompts(const char *json_str, char **out_pos, char **out_neg) {
+    if (!json_str || !out_pos || !out_neg) return;
+    const char *p = json_str;
+    JsonNode *root = parse_value(&p);
+    if (!root) return;
+
+    /* Check root or nested objects (core_metadata, image, metadata) */
+    JsonNode *core_meta = json_get(root, "core_metadata");
+    if (!core_meta) core_meta = json_get(root, "image");
+    if (!core_meta) core_meta = json_get(root, "metadata");
+
+    /* Positive prompt search */
+    const char *pos = json_get_str(root, "positive_prompt");
+    if (!pos && core_meta) pos = json_get_str(core_meta, "positive_prompt");
+    if (!pos) pos = json_get_str(root, "positive_style_prompt");
+    if (!pos && core_meta) pos = json_get_str(core_meta, "positive_style_prompt");
+
+    if (!pos) {
+        JsonNode *p_node = json_get(root, "prompt");
+        if (!p_node && core_meta) p_node = json_get(core_meta, "prompt");
+        if (p_node) {
+            if (p_node->type == JSON_STRING) {
+                pos = p_node->val_str;
+            } else if (p_node->type == JSON_ARRAY && p_node->child) {
+                for (JsonNode *item = p_node->child; item; item = item->next) {
+                    if (item->type == JSON_OBJECT) {
+                        const char *item_p = json_get_str(item, "prompt");
+                        if (item_p && item_p[0] != '\0') {
+                            pos = item_p;
+                            break;
+                        }
+                    } else if (item->type == JSON_STRING && item->val_str[0] != '\0') {
+                        pos = item->val_str;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if (pos && pos[0] != '\0' && !*out_pos) {
+        *out_pos = strdup(pos);
+    }
+
+    /* Negative prompt search */
+    const char *neg = json_get_str(root, "negative_prompt");
+    if (!neg && core_meta) neg = json_get_str(core_meta, "negative_prompt");
+    if (!neg) neg = json_get_str(root, "negative_style_prompt");
+    if (!neg && core_meta) neg = json_get_str(core_meta, "negative_style_prompt");
+
+    if (neg && neg[0] != '\0' && !*out_neg) {
+        *out_neg = strdup(neg);
+    }
+
+    /* Check InvokeAI graph nodes if prompts not found */
+    if (!*out_pos) {
+        JsonNode *nodes = json_get(root, "nodes");
+        if (!nodes) nodes = json_get(root, "graph");
+        if (nodes && nodes->type == JSON_OBJECT) {
+            for (JsonNode *node = nodes->child; node; node = node->next) {
+                if (node->type != JSON_OBJECT) continue;
+                const char *ntype = json_get_str(node, "type");
+                JsonNode *inputs = json_get(node, "inputs");
+
+                if (inputs) {
+                    const char *p_val = json_get_str(inputs, "prompt");
+                    if (!p_val) p_val = json_get_str(inputs, "positive_prompt");
+                    if (!p_val) p_val = json_get_str(inputs, "value");
+
+                    if (p_val && p_val[0] != '\0' && !is_system_prompt_str(p_val)) {
+                        if (ntype && (strstr(ntype, "neg") || strstr(ntype, "negative"))) {
+                            if (!*out_neg) *out_neg = strdup(p_val);
+                        } else {
+                            if (!*out_pos) *out_pos = strdup(p_val);
+                        }
+                    }
+
+                    const char *n_val = json_get_str(inputs, "negative_prompt");
+                    if (n_val && n_val[0] != '\0' && !*out_neg) {
+                        *out_neg = strdup(n_val);
+                    }
+                }
+            }
+        }
+    }
+
+    json_free(root);
+}
+
+static void extract_invokeai_dream_prompt(const char *dream_str, char **out_pos, char **out_neg) {
+    if (!dream_str) return;
+    if (out_pos && !*out_pos) {
+        const char *flag = strstr(dream_str, " -");
+        size_t len = flag ? (size_t)(flag - dream_str) : strlen(dream_str);
+        while (len > 0 && isspace((unsigned char)dream_str[len - 1])) len--;
+        if (len > 0) {
+            char *p = (char *)malloc(len + 1);
+            if (p) {
+                memcpy(p, dream_str, len);
+                p[len] = '\0';
+                *out_pos = p;
+            }
+        }
+    }
+    if (out_neg && !*out_neg) {
+        const char *neg_flag = strstr(dream_str, " -n ");
+        if (!neg_flag) neg_flag = strstr(dream_str, " -n=");
+        if (neg_flag) {
+            const char *val_start = neg_flag + 4;
+            while (*val_start && isspace((unsigned char)*val_start)) val_start++;
+            if (*val_start == '"') {
+                val_start++;
+                const char *val_end = strchr(val_start, '"');
+                if (val_end) {
+                    size_t nlen = (size_t)(val_end - val_start);
+                    char *np = (char *)malloc(nlen + 1);
+                    if (np) {
+                        memcpy(np, val_start, nlen);
+                        np[nlen] = '\0';
+                        *out_neg = np;
+                    }
+                }
+            }
+        }
+    }
+}
+
 /* --- PNG Chunk Parsing Implementation --- */
 
 static void free_metadata(MetadataResult *meta) {
@@ -667,6 +798,8 @@ static void free_metadata(MetadataResult *meta) {
     if (meta->raw_prompt) { free(meta->raw_prompt); meta->raw_prompt = NULL; }
     if (meta->raw_workflow) { free(meta->raw_workflow); meta->raw_workflow = NULL; }
     if (meta->raw_parameters) { free(meta->raw_parameters); meta->raw_parameters = NULL; }
+    if (meta->raw_invokeai) { free(meta->raw_invokeai); meta->raw_invokeai = NULL; }
+    if (meta->raw_dream) { free(meta->raw_dream); meta->raw_dream = NULL; }
     if (meta->prompt_text) { free(meta->prompt_text); meta->prompt_text = NULL; }
     if (meta->negative_text) { free(meta->negative_text); meta->negative_text = NULL; }
     meta->selected_label = NULL;
@@ -753,6 +886,20 @@ static PngStatus parse_png_metadata(const char *filepath, MetadataResult *meta) 
                                 meta->raw_parameters[vlen] = '\0';
                                 meta->raw_parameters_len = vlen;
                             }
+                        } else if ((strcmp(key, "sd-metadata") == 0 || strcmp(key, "sd_metadata") == 0 || strcmp(key, "invokeai") == 0 || strcmp(key, "invokeai_metadata") == 0 || strcmp(key, "invokeai_graph") == 0 || strcmp(key, "invokeai_workflow") == 0) && !meta->raw_invokeai) {
+                            meta->raw_invokeai = (char *)malloc(vlen + 1);
+                            if (meta->raw_invokeai) {
+                                memcpy(meta->raw_invokeai, val, vlen);
+                                meta->raw_invokeai[vlen] = '\0';
+                                meta->raw_invokeai_len = vlen;
+                            }
+                        } else if (strcmp(key, "Dream") == 0 && !meta->raw_dream) {
+                            meta->raw_dream = (char *)malloc(vlen + 1);
+                            if (meta->raw_dream) {
+                                memcpy(meta->raw_dream, val, vlen);
+                                meta->raw_dream[vlen] = '\0';
+                                meta->raw_dream_len = vlen;
+                            }
                         }
                     }
                 }
@@ -808,6 +955,20 @@ static PngStatus parse_png_metadata(const char *filepath, MetadataResult *meta) 
                                     meta->raw_parameters[vlen] = '\0';
                                     meta->raw_parameters_len = vlen;
                                 }
+                            } else if ((strcmp(key, "sd-metadata") == 0 || strcmp(key, "sd_metadata") == 0 || strcmp(key, "invokeai") == 0 || strcmp(key, "invokeai_metadata") == 0 || strcmp(key, "invokeai_graph") == 0 || strcmp(key, "invokeai_workflow") == 0) && !meta->raw_invokeai) {
+                                meta->raw_invokeai = (char *)malloc(vlen + 1);
+                                if (meta->raw_invokeai) {
+                                    memcpy(meta->raw_invokeai, val, vlen);
+                                    meta->raw_invokeai[vlen] = '\0';
+                                    meta->raw_invokeai_len = vlen;
+                                }
+                            } else if (strcmp(key, "Dream") == 0 && !meta->raw_dream) {
+                                meta->raw_dream = (char *)malloc(vlen + 1);
+                                if (meta->raw_dream) {
+                                    memcpy(meta->raw_dream, val, vlen);
+                                    meta->raw_dream[vlen] = '\0';
+                                    meta->raw_dream_len = vlen;
+                                }
                             }
                         }
                     }
@@ -834,8 +995,19 @@ static PngStatus parse_png_metadata(const char *filepath, MetadataResult *meta) 
     if (!meta->prompt_text && meta->raw_workflow) {
         extract_comfyui_prompts_from_workflow(meta->raw_workflow, &meta->prompt_text, &meta->negative_text);
     }
+    if (!meta->prompt_text && meta->raw_invokeai) {
+        extract_invokeai_prompts(meta->raw_invokeai, &meta->prompt_text, &meta->negative_text);
+    }
+    if (!meta->prompt_text && meta->raw_dream) {
+        extract_invokeai_dream_prompt(meta->raw_dream, &meta->prompt_text, &meta->negative_text);
+    }
     if (!meta->prompt_text && meta->raw_parameters) {
         extract_a1111_prompts(meta->raw_parameters, &meta->prompt_text, &meta->negative_text);
+    }
+
+    if (!meta->raw_workflow && meta->raw_invokeai) {
+        meta->raw_workflow = strdup(meta->raw_invokeai);
+        meta->raw_workflow_len = meta->raw_invokeai_len;
     }
 
     if (meta->prompt_text) {
@@ -846,7 +1018,7 @@ static PngStatus parse_png_metadata(const char *filepath, MetadataResult *meta) 
     }
 
     /* Check if anything was found */
-    if (meta->prompt_text || meta->raw_prompt || meta->raw_workflow || meta->raw_parameters) {
+    if (meta->prompt_text || meta->raw_prompt || meta->raw_workflow || meta->raw_parameters || meta->raw_invokeai || meta->raw_dream) {
         meta->found = true;
         meta->status = PNG_OK;
     } else {

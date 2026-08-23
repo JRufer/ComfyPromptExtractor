@@ -71,6 +71,7 @@ test: $(TARGET)
 	python3 tests/generate_test_pngs.py
 	python3 tests/generate_user_sample.py
 	python3 tests/generate_complex_samples.py
+	python3 tests/generate_invokeai_sample.py
 	@echo "\n--- Testing Clean Prompt Text Extraction (Default) ---"
 	@./$(TARGET) tests/sample_user_prompt.png | grep -q "surrealist art Surrealism" && echo "✓ sample_user_prompt.png: User prompt text extracted successfully"
 	@./$(TARGET) -n tests/sample_user_prompt.png | grep -q "low quality, blurry" && echo "✓ sample_user_prompt.png: Negative prompt text extracted successfully"
@@ -79,6 +80,9 @@ test: $(TARGET)
 	@./$(TARGET) tests/sample_flux.png | grep -q "cyberpunk city" && echo "✓ sample_flux.png: Flux prompt text extracted successfully"
 	@./$(TARGET) tests/sample_krea2.png | grep -qi "parakeet bird" && echo "✓ sample_krea2.png: Krea2 prompt text extracted successfully"
 	@./$(TARGET) tests/sample_itxt.png | grep -q "astronaut" && echo "✓ sample_itxt.png: iTXt Prompt text extracted successfully"
+	@./$(TARGET) tests/sample_invokeai.png | grep -q "cyberpunk artist" && echo "✓ sample_invokeai.png: InvokeAI prompt text extracted successfully"
+	@./$(TARGET) tests/sample_invokeai_graph.png | grep -q "cyberpunk girl" && echo "✓ sample_invokeai_graph.png: InvokeAI graph prompt text extracted successfully"
+	@./$(TARGET) tests/sample_invokeai_dream.png | grep -q "steampunk temple" && echo "✓ sample_invokeai_dream.png: InvokeAI dream prompt text extracted successfully"
 	@echo "\n--- Testing Raw JSON & Workflow Options ---"
 	@./$(TARGET) -r tests/sample_comfy.png | grep -q "KSampler" && echo "✓ -r / --raw: Raw prompt JSON graph extracted successfully"
 	@./$(TARGET) -w tests/sample_comfy.png | grep -q "links" && echo "✓ -w / --workflow: Workflow JSON extracted successfully"
