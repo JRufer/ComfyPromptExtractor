@@ -8,7 +8,7 @@
 
 ## Key Features
 
-- 🎯 **Clean Prompt Text Extraction (Default)**: Automatically parses ComfyUI node graphs, tracing Samplers (`KSampler`, `SamplerCustom`), `CLIPTextEncode`, `SDXL` (`text_g`/`text_l`), `Flux` (`clip_l`/`t5xxl`), Guidance nodes, and text primitives to deliver **clean, raw human-readable prompt text** rather than raw JSON graphs.
+- 🎯 **Multi-Framework Prompt Extraction**: Automatically parses **ComfyUI**, **InvokeAI** (`sd-metadata`, `invokeai_metadata`, `invokeai_graph`, `Dream`), **SDXL**, **Flux**, **Krea2**, and **AUTOMATIC1111/WebUI** metadata to deliver **clean, raw human-readable prompt text** and workflow JSON structure.
 - ⚡ **Instant Execution (< 1ms)**: Fast, sequential C stream parser reads only PNG chunk headers (`tEXt` and `iTXt`) and skips multi-megabyte `IDAT` pixel data with `fseek()`.
 - 🔄 **Smart Context Detection**:
   - **Terminal / CLI Mode (TTY detected)**: Emits clean prompt text directly to `stdout` and exits immediately (`0` on success, `1` on error). Zero GUI initialization overhead.
