@@ -1,6 +1,6 @@
 /**
  * ComfyPromptExtractor (CPE)
- * Ultra-fast, zero-dependency ComfyUI prompt & workflow metadata extractor for Linux.
+ * Ultra-fast, zero-dependency ComfyUI prompt & workflow metadata extractor for Linux, Windows, and macOS.
  * 
  * Tech Stack:
  *  - C99 standard
