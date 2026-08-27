@@ -36,7 +36,7 @@ Download ready-to-run binaries from GitHub Releases:
 - `make`
 
 **Dependencies by Platform:**
-- **Linux**: `libraylib-dev`, `libx11-dev`, `libgl1-mesa-dev` (or built automatically via `vendor/raylib`)
+- **Linux**: `libx11-dev`, `libxcursor-dev`, `libxrandr-dev`, `libxinerama-dev`, `libxi-dev`, `libgl1-mesa-dev` (Raylib is fetched automatically via `vendor/raylib` if not present)
 - **macOS**: Raylib via Homebrew (`brew install raylib`)
 - **Windows**: GCC and Raylib via MSYS2 (`pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-raylib`)
 
