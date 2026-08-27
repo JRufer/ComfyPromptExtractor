@@ -1,5 +1,6 @@
 CC ?= gcc
-CFLAGS ?= -std=c99 -O3 -march=native -s -Wall -Wextra
+EXE ?=
+CFLAGS ?= -std=c99 -O3 -s -Wall -Wextra
 DEBUG_CFLAGS ?= -std=c99 -g -O0 -Wall -Wextra
 
 PREFIX ?= /usr/local
@@ -20,7 +21,7 @@ else
     RAYLIB_LIBS := $(VENDOR_DIR)/lib/libraylib.a -lm -lpthread -ldl -lrt -lX11
 endif
 
-TARGET := cpe
+TARGET := cpe$(EXE)
 SRC := cpe.c
 
 .PHONY: all clean debug install uninstall test vendor-raylib
@@ -44,7 +45,7 @@ vendor-raylib:
 	fi
 
 clean:
-	rm -f $(TARGET) $(TARGET)_debug
+	rm -f cpe cpe.exe cpe_debug cpe_debug.exe $(TARGET) $(TARGET)_debug
 
 install: $(TARGET)
 	install -d $(DESTDIR)$(BINDIR)

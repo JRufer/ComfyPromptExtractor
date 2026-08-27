@@ -6,42 +6,135 @@ on:
       - main
 
 jobs:
-  build-and-draft-release:
-    name: Build & Create Draft Release
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
+  build:
+    name: Build (${{ matrix.target_os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target_os: linux
+            artifact_name: cpe-build-linux
+          - os: windows-latest
+            target_os: windows
+            artifact_name: cpe-build-windows
+          - os: macos-latest
+            target_os: macos
+            artifact_name: cpe-build-macos
 
     steps:
       - name: Checkout Code
-        run: |
-          git clone --depth=1 "https://github.com/${{ github.repository }}.git" .
-          git fetch origin "${{ github.sha }}"
-          git checkout -qf "${{ github.sha }}"
+        uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Install Dependencies (Linux)
+        if: matrix.target_os == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev python3 python3-pil
+          sudo apt-get install -y build-essential libraylib-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev python3 python3-pil
 
-      - name: Build Application
+      - name: Install Dependencies (macOS)
+        if: matrix.target_os == 'macos'
+        run: |
+          brew install raylib python3
+          python3 -m pip install --break-system-packages pillow || python3 -m pip install pillow
+
+      - name: Setup MSYS2 (Windows)
+        if: matrix.target_os == 'windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git
+            make
+            zip
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-raylib
+            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-python
+            mingw-w64-x86_64-python-pillow
+
+      - name: Build Application (Linux / macOS)
+        if: matrix.target_os != 'windows'
         run: |
           make clean
           make
 
-      - name: Run Test Suite
+      - name: Build Application (Windows)
+        if: matrix.target_os == 'windows'
+        shell: msys2 {0}
+        run: |
+          make clean
+          make EXE=.exe
+
+      - name: Run Test Suite (Linux / macOS)
+        if: matrix.target_os != 'windows'
         run: |
           make test
 
-      - name: Package Release Bundle
+      - name: Run Test Suite (Windows)
+        if: matrix.target_os == 'windows'
+        shell: msys2 {0}
         run: |
+          make test EXE=.exe
+
+      - name: Package Release Bundle (Linux)
+        if: matrix.target_os == 'linux'
+        run: |
+          mkdir -p dist
           mkdir -p release_dist
           cp cpe release_dist/
           cp cpe.desktop release_dist/
           cp cpe.png release_dist/
           cp README.md release_dist/
-          tar -czvf cpe-linux-amd64.tar.gz -C release_dist .
+          tar -czvf dist/cpe-linux-amd64.tar.gz -C release_dist .
+          cp cpe dist/cpe-linux-amd64
+
+      - name: Package Release Bundle (macOS)
+        if: matrix.target_os == 'macos'
+        run: |
+          mkdir -p dist
+          mkdir -p release_dist
+          cp cpe release_dist/
+          cp README.md release_dist/
+          tar -czvf dist/cpe-macos-arm64.tar.gz -C release_dist .
+          cp cpe dist/cpe-macos-arm64
+
+      - name: Package Release Bundle (Windows)
+        if: matrix.target_os == 'windows'
+        shell: msys2 {0}
+        run: |
+          mkdir -p dist
+          mkdir -p release_dist
+          cp cpe.exe release_dist/
+          cp README.md release_dist/
+          cd release_dist && zip -r ../dist/cpe-windows-amd64.zip . && cd ..
+          cp cpe.exe dist/cpe-windows-amd64.exe
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/*
+
+  create-draft-release:
+    name: Create Draft Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cpe-build-*
+          merge-multiple: true
+          path: release_assets
 
       - name: Create Draft Release
         env:
@@ -58,5 +151,4 @@ jobs:
             --target "${{ github.sha }}" \
             --title "ComfyPromptExtractor Draft Release (${SHORT_SHA})" \
             --notes "Automated draft build of **ComfyPromptExtractor (CPE)** generated from commit \`${{ github.sha }}\` on \`main\`." \
-            cpe \
-            cpe-linux-amd64.tar.gz
+            release_assets/*
